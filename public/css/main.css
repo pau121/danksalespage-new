@@ -375,7 +375,7 @@ nav.main .buttons .signup {
 
 @media (min-width: 1024px) {
   .footer .all-containing-container>div {
-    width: 23%;
+    max-width: 23%;
   }
 }
 
