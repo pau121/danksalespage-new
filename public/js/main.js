@@ -1,13 +1,16 @@
 var softcap = 800000;
 var hardcap = 2000000;
 
+
+var boughtDank = 0;
+
 const saleHash = hashToByteArray("043D730801A8FDCD17F1E540C08282E91A387FA6236D43A39A10EAA01622BC4D");
 // const saleHash = hashToByteArray("11AF1789D352FB8B9FCB1B787975C5BD93583C253CDB853C63F84A3053D10493");  // testnet sale
 
 // const apiUrl = 'http://testnet.phantasma.io:7078';
 const apiUrl = 'https://seed.ghostdevs.com:7078'
 
-// const apiUrl = 'http://localhost:7078';
+// const apiUrl = 'http://localhost:7078'; 
 
 function hashToByteArray(hexBytes) {
     const res = [];
@@ -57,6 +60,7 @@ function login() {
 
             contentBootbox = 'Connected wallet: ' + linkName + ' • ' + formatAddressShort(linkAddress)
                 + '<br>SOUL balance: ' + parseFloat(linkBalSOUL).toFixed(0) + ' SOUL'
+                + '<span id="alreadyBought" style="display:none">You already bought: <span id="boughtDank"></span> DANK</span>'
                 + '<br><br>How much SOUL do you want to contribute to the sale?'
                 + '<br><br><input type="text" class="form-control" name="amountsale" id="amountsale"><br>'
                 + "Note: you have to be whitelisted with your address or your transaction will be refunded."
@@ -81,12 +85,20 @@ function login() {
                         results = {};
                         results.fieldname1 = dialog[0].querySelector("[name=amountsale]").value;
                         sendAmount = results.fieldname1
-                        if (sendAmount < 6250/4) {
+                        console.log("boughtDank", boughtDank);
+                        var boughtAmount = boughtDank/4;
+                        var totalAmount = parseFloat(sendAmount) + boughtAmount
+                        console.log("Total buy will be "+ totalAmount);
+                        if (totalAmount < 6250/4) {
                             bootbox.alert('Amount too low!<br>You need to participate with at least 1,563 SOUL');
                             return;
                         }
-                        if (sendAmount > 312500/4) {
+                        if (totalAmount > 312500/4) {
                             bootbox.alert('Amount too high!<br>You can participate only up to 78,125 SOUL');
+                            return;
+                        }
+                        if (parseFloat(sendAmount) < 100) {
+                            bootbox.alert('Amount too low!<br>You need to buy at least 100 SOUL more');
                             return;
                         }
 
@@ -98,6 +110,18 @@ function login() {
 
                 }
             })
+
+            var purScript = new ScriptBuilder().callContract('sale', 'GetPurchasedAmount', [saleHash, linkAddress]).endScript();
+            $.getJSON(apiUrl + '/api/invokeRawScript?chainInput=main&scriptData=' + purScript,
+                function (data) {
+                    var dec = new Decoder(data.result);
+                    console.log('type', dec.readByte());
+                    boughtDank = dec.readBigInt() / 10 ** 18;
+                    console.log("purchased amount", boughtDank);
+                    $("#alreadyBought").css("display", "block")
+                    $("#boughtDank").html(boughtDank);
+                });
+
 
         }
 
